@@ -62,17 +62,19 @@ while run:
 
     screen.fill((0, 0, 0))
     num_objects = len(objects)
-    for i in range(num_objects):
-        objects[i].handle_movement(pygame.mouse.get_pos())
-        objects[i].draw_self(screen)
-        objects[i].draw_vector(screen)
-        for j in range(num_objects):
+    for i, instance in enumerate(objects):
+        instance.handle_movement(pygame.mouse.get_pos())
+        for j, other_instance in enumerate(objects):
             if j != i:
-                 if objects[i].check_collisions(objects[j]):
-                     objects[i].resolve_collisions(objects[j])
+                 if instance.check_collisions(other_instance):
+                     instance.resolve_collisions(other_instance)
+        instance.check_border_collision()
+
+        # Draw Methods
+        instance.draw_self(screen)
+        instance.draw_vector(screen)
 
     screen_borders = draw_borders()
 
     clock.tick(fps)
     pygame.display.update()
-

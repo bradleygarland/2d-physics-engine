@@ -15,10 +15,11 @@ class Ball:
         self.friction = 0.98
         self.retention = retention
         self.x_acceleration = x_acceleration
-        self.y_acceleration = y_acceleration
+        self.y_acceleration = -.3
         self.bounce_stop = 1.5
         self.circle = None
         self.selected = False
+        self.bounce = 0.95
 
     def handle_movement(self, mouse_position):
         if not self.selected:
@@ -84,6 +85,17 @@ class Ball:
             self.x_velocity = (mouse_position_log[-1][0] - mouse_position_log[-2][0]) / 2 * 0.75
             self.y_velocity = (mouse_position_log[-1][1] - mouse_position_log[-2][1]) / 2 * -0.5
 
+    def check_border_collision(self):
+        if self.x_pos > WIDTH - self.radius - border_width / 2:
+            self.x_pos = WIDTH - self.radius - border_width / 2
+        elif self.x_pos < self.radius + border_width / 2:
+            self.x_pos = self.radius + border_width / 2
+
+        if self.y_pos > HEIGHT - self.radius - border_width / 2:
+            self.y_pos = HEIGHT - self.radius - border_width / 2
+        elif self.y_pos < self.radius + border_width / 2:
+            self.y_pos = self.radius + border_width / 2
+
     def check_collisions(self, other):
         dx = self.x_pos - other.x_pos
         dy = self.y_pos - other.y_pos
@@ -99,11 +111,31 @@ class Ball:
         if distance == 0:  # Prevent division by zero
             return
 
-        self.x_velocity -= other.x_velocity
-        other.x_velocity += self.x_velocity
+        overlap = (self.radius + other.radius) - distance
 
-        self.y_velocity -= other.y_velocity
-        other.y_velocity += self.y_velocity
+        # Normalize collision vector
+        nx = dx / distance
+        ny = dy / distance
+
+        self.x_pos += nx  * overlap / 2
+        self.y_pos += ny * overlap / 2
+        other.x_pos -= nx * overlap / 2
+        other.y_pos -= ny * overlap / 2
+
+        relative_velocity_x = self.x_velocity - other.x_velocity
+        relative_velocity_y = self.y_velocity - other.y_velocity
+        dot_product = relative_velocity_x * nx + relative_velocity_y * ny
+
+        if dot_product > 0:
+            return
+
+        coefficient_of_restitution = (self.bounce + other.bounce) / 2
+        impulse = 2 * dot_product / (self.radius + other.radius)
+
+        self.x_velocity -= impulse * other.radius * nx * coefficient_of_restitution
+        self.y_velocity -= impulse * other.radius * ny * coefficient_of_restitution
+        other.x_velocity += impulse * self.radius * nx * coefficient_of_restitution
+        other.y_velocity += impulse * self.radius * ny * coefficient_of_restitution
 
     def draw_vector(self, screen):
         pygame.draw.line(screen, 'red', (self.x_pos, self.y_pos), (self.x_pos + self.x_velocity * 4, self.y_pos), 4)
